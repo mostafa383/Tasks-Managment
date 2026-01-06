@@ -1,0 +1,12 @@
+﻿<div  style="--card-bg: @Color;">
+    <p>@Text</p>
+    <h3>@Value</h3>
+</div>
+@code {
+    [Parameter]
+    public string Color { get; set; }
+    [Parameter]
+    public string Text { get; set; }
+    [Parameter]
+    public int Value { get; set; }
+}

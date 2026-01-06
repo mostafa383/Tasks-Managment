@@ -1,0 +1,75 @@
+﻿@rendermode InteractiveServer
+@inject TasksContext Context
+@inject DragDropService DragDropService
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<div style="--color:@Color" class="tasks">
+    <div class="card-headerr">
+        <div class="logo">
+            <i class="fa-solid fa-list-check"></i>
+            <h3>@Title</h3>
+        </div> 
+        <div class="count">@Count</div>
+    </div>
+    <div ondragover="event.preventDefault();"
+         @ondrop="() => HandleDrop(Title)"
+        class="card-body">
+
+        @foreach(var task in Tasks)
+        {
+            <div draggable="true" class="task" @ondragstart="()=>HandleDragStart(task)">
+                <p>@task.Title</p>
+                <p>@task.Description</p>
+                @* داخل الـ Loop في TaskContainer.razor *@
+                <div class="date-badge">
+                    <i class="fa-regular fa-clock"></i>
+                    @task.StartData.ToString("hh:mm tt")
+                </div>
+               <div class="footer">
+                    <p>@task.Pirority</p>
+                    <div class="icons">
+                        <i @onclick="()=>DeleteTask(task)" class="fa-solid fa-trash"></i>
+                        <i class="fa-solid fa-pen"></i>
+                    </div>
+                </div>
+            </div>
+        }
+    <div/>
+</div>
+</div>
+
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "";
+    [Parameter]
+    public string Color { get; set; } = "Red";
+    [Parameter]
+    public List<Taskk> Tasks { get; set; } = new();
+    [Parameter]
+    public int Count { get; set; }
+    [Parameter]
+    public EventCallback OnTaskMoved { get; set; }
+    // private Taskk? DraggedTask;
+
+
+    void HandleDragStart(Taskk draggedTask)
+    {
+        DragDropService.DraggedTask = draggedTask;
+    }
+    async Task HandleDrop(string title)
+    {
+        if (DragDropService.DraggedTask is not null && Title != DragDropService.DraggedTask.TaskType.ToString())
+        {
+            DragDropService.DraggedTask.TaskType = Enum.GetValues<TaskType>().FirstOrDefault(e => e.ToString() == Title);
+            await Context.SaveChangesAsync();
+            await OnTaskMoved.InvokeAsync();
+        }
+    }
+
+    async Task DeleteTask(Taskk task)
+    {
+        Context.Tasks.Remove(task);
+        await Context.SaveChangesAsync();
+        Tasks.Remove(task);
+    }
+}

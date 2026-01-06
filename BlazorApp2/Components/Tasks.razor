@@ -1,0 +1,21 @@
+﻿@page "/tasks"
+@rendermode RenderMode.InteractiveServer
+<PageTitle>Tasks</PageTitle>
+<input type="text" @bind="Task" @bind:event="oninput"/>
+<button @onclick="AddTask">Add Tasks</button>
+@foreach(var task in Taskss)
+{
+   <p>@task <button @onclick="()=>RemoveTask(task)" >Remove</button></p>
+}
+@code {
+    public string Task { get; set; } = string.Empty;
+    public List<string> Taskss { get; set; } = new(){"Blazor", "القران","Problem Solving"  };
+    void AddTask()
+    {
+        Taskss.Add(Task);
+    }
+    void RemoveTask(string task)
+    {
+        Taskss.Remove(task);
+    }
+}

@@ -1,0 +1,14 @@
+﻿
+<div class="modal-overlay @(IsVisible ? "is-visible" : "")" @onclick="Close">
+    <div class="modal-card" @onclick:stopPropagation="true">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private async Task Close() => await OnClose.InvokeAsync();
+}

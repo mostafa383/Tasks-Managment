@@ -1,0 +1,44 @@
+﻿/* app.css */
+
+/* استخدام body قبل الكلاس بيعلي قوة الـ Selector جداً */
+body .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    /* حالة الإخفاء */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+    /* حالة الظهور */
+    body .modal-overlay.is-visible {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+body .modal-card {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 20px;
+    min-width: 350px;
+    max-width: 500px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    color: #333333;
+    /* حركة الكارت */
+    transform: translateY(30px);
+    transition: transform 0.3s ease-out;
+}
+
+body .modal-overlay.is-visible .modal-card {
+    transform: translateY(0);
+}

@@ -1,0 +1,91 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject TasksContext Context
+<PageTitle>Home</PageTitle>
+
+
+<div class="container-card">
+    <MinCard Color="orange" Text="AllTasks" Value="@(Tasks.Count)" />
+    <MinCard Color="#5d2ab2" Text="ToDo" Value="@(ToDo.Count)" />
+    <MinCard Color="#27ae60" Text="Processing" Value="@(Processing.Count)" />
+    <MinCard Color="orange" Text="Completed" Value="@(Completed.Count)" />
+</div>
+<button class="AddTask fa-solid fa-plus" @onclick="() => showModal = true"></button>
+
+<div class="tasks-container">
+    <TaskContainer OnTaskMoved="RefreshData"  Title="ToDo" Tasks="ToDo" Count="ToDo.Count" Color="#2563eb"></TaskContainer>
+    <TaskContainer OnTaskMoved="RefreshData"  Title="Processing" Tasks="Processing" Count="Processing.Count" Color="#f59e0b"></TaskContainer>
+    <TaskContainer OnTaskMoved="RefreshData"  Title="Completed" Tasks="Completed" Count="Completed.Count" Color="#16a34a"></TaskContainer>
+
+</div>
+@* ... كود الكروت والـ Tasks ... *@
+
+<Modal IsVisible="showModal" OnClose="() => showModal = false">
+    <h2 style="color:black">ِAddTask</h2>
+    <input placeholder="Enter title" type="text" @bind="TaskDto.Title" class="form-control" />
+    <input placeholder="Enter description" type="text" @bind="TaskDto.Description" class="form-control" />
+    <select @bind="TaskDto.Pirority">
+        @foreach(var pir in Enum.GetValues<Pirority>())
+        {
+            <option value="@pir">@pir</option>
+        }
+    </select>
+    <select @bind="TaskDto.TaskType">
+        @foreach (var type in Enum.GetValues<TaskType>())
+        {
+            <option value="@type">@type</option>
+        }
+    </select>
+    <input type="datetime-local" @bind="TaskDto.StartDate"
+                                 @bind:format="yyyy-MM-ddTHH:mm"/>
+    <button class="btn btn-success" @onclick=AddTask>ِAdd</button>
+    <button class="btn btn-danger" @onclick="() => showModal = false">ِClose</button>
+</Modal>
+@code{
+    // تعريف القائمة كمتغير عادي
+    public List<Taskk> Tasks { get; set; } = new();
+    public TaskDto TaskDto { get; set; } = new();
+    private bool showModal = false;
+    public List<Taskk> ToDo { get; set; } = new();
+    public List<Taskk> Processing { get; set; } = new();
+    public List<Taskk> Completed { get; set; } = new();
+
+    // جلب البيانات عند تحميل الصفحة
+    protected override async Task OnInitializedAsync()
+    {
+        Tasks = await Context.Tasks.ToListAsync();
+        ToDo = Tasks.Where(e => e.TaskType == TaskType.ToDo).ToList();
+        Processing = Tasks.Where(e => e.TaskType == TaskType.Processing).ToList();
+        Completed = Tasks.Where(e => e.TaskType == TaskType.Completed).ToList();
+    }
+
+    async Task AddTask() {
+        try
+        {
+            var task = new Taskk
+                {
+                    Description = TaskDto.Description,
+                    Pirority = TaskDto.Pirority,
+                    TaskType = TaskDto.TaskType,
+                    Title = TaskDto.Title
+                };
+            if (TaskDto.TaskType == TaskType.ToDo)
+                ToDo.Add(task);
+            if (TaskDto.TaskType == TaskType.Processing)
+                Processing.Add(task);
+            if (TaskDto.TaskType == TaskType.Completed)
+                Completed.Add(task);
+            Context.Add(task);
+            await Context.SaveChangesAsync();
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+    void RefreshData() {
+        ToDo = Tasks.Where(e => e.TaskType == TaskType.ToDo).ToList();
+        Processing = Tasks.Where(e => e.TaskType == TaskType.Processing).ToList();
+        Completed = Tasks.Where(e => e.TaskType == TaskType.Completed).ToList();
+    }
+}

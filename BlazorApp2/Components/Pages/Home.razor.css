@@ -1,0 +1,35 @@
+﻿* {
+    padding:0 ;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.container-card {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+.AddTask {
+    background: #1d4ed8;
+    font-size: 20px;
+    color: white;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    border: none;
+    position: fixed;
+    bottom: 50px;
+    right: 50px;
+}
+
+.tasks-container {
+    display:flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+   

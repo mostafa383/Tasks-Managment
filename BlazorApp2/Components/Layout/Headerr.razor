@@ -1,0 +1,21 @@
+﻿@inject NavigationManager NavigationManager
+
+<header>
+    <div class="logo">
+        <img src="/task.png" alt="Alternate Text" />
+        <h1>Task Manager</h1>
+    </div>
+    <ul>
+        <NavLink href="/" Match="NavLinkMatch.All">Home</NavLink>
+        <NavLink href="tasks" Match="NavLinkMatch.All">Tasks</NavLink>
+        <NavLink href="about" Match="NavLinkMatch.All">About</NavLink>
+    </ul>
+</header>
+
+@code{
+    void NavigateToTasks() 
+    {
+        NavigationManager.NavigateTo("/tasks");
+        Console.WriteLine("dfd");
+    }
+}

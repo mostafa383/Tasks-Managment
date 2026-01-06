@@ -1,0 +1,31 @@
+﻿* {
+    margin: 0;
+    padding:0 ;
+    box-sizing: border-box;
+}
+
+
+.logo img {
+    width: 80px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+}
+ul {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 15px
+}
+ul li {
+    font-size: 1.2rem;
+    /*padding: 10px 15px;*/
+}
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: cadetblue;
+    padding: 0 20px;
+}
