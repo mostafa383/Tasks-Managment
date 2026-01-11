@@ -1,9 +1,15 @@
 ﻿@page "/"
+@using Blazorise
 @rendermode InteractiveServer
 @inject TasksContext Context
 <PageTitle>Home</PageTitle>
 
-
+<div style="position: relative; max-width: 300px; margin-bottom: 20px;">
+    <DatePicker TValue="DateTime"
+                Date="@SelectedDate"
+                DateChanged="@FilterTasksByDate"
+                class="form-control" />
+</div>
 <div class="container-card">
     <MinCard Color="orange" Text="AllTasks" Value="@(Tasks.Count)" />
     <MinCard Color="#5d2ab2" Text="ToDo" Value="@(ToDo.Count)" />
@@ -12,20 +18,24 @@
 </div>
 <button class="AddTask fa-solid fa-plus" @onclick="() => showModal = true"></button>
 
+
+@code {
+    DateTime? value;
+}
 <div class="tasks-container">
-    <TaskContainer OnTaskMoved="RefreshData"  Title="ToDo" Tasks="ToDo" Count="ToDo.Count" Color="#2563eb"></TaskContainer>
-    <TaskContainer OnTaskMoved="RefreshData"  Title="Processing" Tasks="Processing" Count="Processing.Count" Color="#f59e0b"></TaskContainer>
-    <TaskContainer OnTaskMoved="RefreshData"  Title="Completed" Tasks="Completed" Count="Completed.Count" Color="#16a34a"></TaskContainer>
+    <TaskContainer OnDeleteRequested="DeleteRequest" OnTaskMoved="RefreshData" Title="ToDo" Tasks="ToDo" Count="ToDo.Count" Color="#2563eb"></TaskContainer>
+    <TaskContainer OnDeleteRequested="DeleteRequest" OnTaskMoved="RefreshData" Title="Processing" Tasks="Processing" Count="Processing.Count" Color="#f59e0b"></TaskContainer>
+    <TaskContainer OnDeleteRequested="DeleteRequest" OnTaskMoved="RefreshData" Title="Completed" Tasks="Completed" Count="Completed.Count" Color="#16a34a"></TaskContainer>
 
 </div>
 @* ... كود الكروت والـ Tasks ... *@
 
-<Modal IsVisible="showModal" OnClose="() => showModal = false">
+<BlazorApp2.Components.Modal IsVisible="showModal" OnClose="() => showModal = false">
     <h2 style="color:black">ِAddTask</h2>
     <input placeholder="Enter title" type="text" @bind="TaskDto.Title" class="form-control" />
     <input placeholder="Enter description" type="text" @bind="TaskDto.Description" class="form-control" />
     <select @bind="TaskDto.Pirority">
-        @foreach(var pir in Enum.GetValues<Pirority>())
+        @foreach (var pir in Enum.GetValues<Pirority>())
         {
             <option value="@pir">@pir</option>
         }
@@ -36,12 +46,26 @@
             <option value="@type">@type</option>
         }
     </select>
-    <input type="datetime-local" @bind="TaskDto.StartDate"
-                                 @bind:format="yyyy-MM-ddTHH:mm"/>
+    <InputDate Type="InputDateType.DateTimeLocal"
+               @bind-Value="TaskDto.StartDate"
+               class="form-control" />
     <button class="btn btn-success" @onclick=AddTask>ِAdd</button>
     <button class="btn btn-danger" @onclick="() => showModal = false">ِClose</button>
-</Modal>
-@code{
+</BlazorApp2.Components.Modal>
+
+
+<div @onclick="() => IsVisible = false" class="remove-modal @(IsVisible ? "isvisible" : "")">
+    <div class="modal-card">
+        <h2 style="color:black">ِDelete Task</h2>
+        <p>Are you sure you want to delete this task?</p>
+        <button @onclick="DeleteTask" class="btn btn-danger">Delete</button>
+        <button @onclick="() => IsVisible = false" class=" btn btn-secondary">Cancel</button>
+    </div>
+</div>
+
+@code {
+    public DateTime SelectedDate { get; set; } = DateTime.Now;
+    public bool IsVisible { get; set; }
     // تعريف القائمة كمتغير عادي
     public List<Taskk> Tasks { get; set; } = new();
     public TaskDto TaskDto { get; set; } = new();
@@ -49,43 +73,68 @@
     public List<Taskk> ToDo { get; set; } = new();
     public List<Taskk> Processing { get; set; } = new();
     public List<Taskk> Completed { get; set; } = new();
-
+    Taskk? deletedTask;
     // جلب البيانات عند تحميل الصفحة
     protected override async Task OnInitializedAsync()
     {
-        Tasks = await Context.Tasks.ToListAsync();
+        Tasks = await Context.Tasks.
+            Where(e => e.StartData.Date == DateTime.Today.Date).ToListAsync();
         ToDo = Tasks.Where(e => e.TaskType == TaskType.ToDo).ToList();
         Processing = Tasks.Where(e => e.TaskType == TaskType.Processing).ToList();
         Completed = Tasks.Where(e => e.TaskType == TaskType.Completed).ToList();
     }
 
-    async Task AddTask() {
+    async Task AddTask()
+    {
         try
         {
             var task = new Taskk
-                {
-                    Description = TaskDto.Description,
-                    Pirority = TaskDto.Pirority,
-                    TaskType = TaskDto.TaskType,
-                    Title = TaskDto.Title
-                };
-            if (TaskDto.TaskType == TaskType.ToDo)
-                ToDo.Add(task);
-            if (TaskDto.TaskType == TaskType.Processing)
-                Processing.Add(task);
-            if (TaskDto.TaskType == TaskType.Completed)
-                Completed.Add(task);
+            {
+                Description = TaskDto.Description,
+                Pirority = TaskDto.Pirority,
+                TaskType = TaskDto.TaskType,
+                Title = TaskDto.Title,
+                StartData = TaskDto.StartDate
+            };
             Context.Add(task);
             await Context.SaveChangesAsync();
+            await RefreshData();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
         }
     }
-    void RefreshData() {
+    async Task RefreshData()
+    {
+        Tasks = await Context.Tasks.
+        Where(e => e.StartData.Date == SelectedDate.Date).
+        ToListAsync();
+
         ToDo = Tasks.Where(e => e.TaskType == TaskType.ToDo).ToList();
         Processing = Tasks.Where(e => e.TaskType == TaskType.Processing).ToList();
         Completed = Tasks.Where(e => e.TaskType == TaskType.Completed).ToList();
+
+        StateHasChanged(); // تأكيد تحديث الواجهة
+    }
+    async Task DeleteRequest(Taskk task)
+    {
+        IsVisible = true;
+        deletedTask = task;
+    }
+    async Task DeleteTask()
+    {
+        if (deletedTask is not null)
+        {
+            Context.Tasks.Remove(deletedTask);
+            await Context.SaveChangesAsync();
+            await RefreshData();
+            IsVisible = false;
+        }
+    }
+    async Task FilterTasksByDate(DateTime newDate)
+    {
+        SelectedDate = newDate; // تحديث القيمة المختارة باللي المستخدم داس عليه
+        await RefreshData();    // جلب البيانات بناءً على التاريخ الجديد
     }
 }

@@ -50,6 +50,17 @@
     flex-direction: column;
     align-items: center;
 }
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
 .task {
     background: #fff;
@@ -58,8 +69,9 @@
     width: 320px;
     margin-top: 10px;
     margin-bottom: 10px;
-    transition: .3s ;
-    cursor:move;
+    transition: .3s;
+    cursor: move;
+    animation: slideIn 0.3s linear;
 }
 
     .task:hover {
@@ -67,7 +79,7 @@
     }
 
     .task p {
-        margin-bottom: 10px;
+        /*margin-bottom: 10px;*/
     }
 
     .task .footer {
@@ -76,11 +88,21 @@
         align-items: center;
     }
 
-    .task:hover .footer i {
-        opacity: 1;
-    }
+        .task .footer .one {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background-color: #eee;
+            padding: 2px 8px;
+            border-radius: 5px;
+        }
 
-    .task .footer i {
+        .task:hover .footer .icons i {
+            opacity: 1;
+        }
+
+    .task .footer .icons i {
         cursor: pointer;
         opacity: 0;
         transition: .5s;

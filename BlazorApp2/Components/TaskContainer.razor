@@ -7,34 +7,33 @@
         <div class="logo">
             <i class="fa-solid fa-list-check"></i>
             <h3>@Title</h3>
-        </div> 
+        </div>
         <div class="count">@Count</div>
     </div>
     <div ondragover="event.preventDefault();"
          @ondrop="() => HandleDrop(Title)"
-        class="card-body">
+         class="card-body">
 
-        @foreach(var task in Tasks)
+        @foreach (var task in Tasks)
         {
-            <div draggable="true" class="task" @ondragstart="()=>HandleDragStart(task)">
+            <div draggable="true" class="task" @ondragstart="() => HandleDragStart(task)">
                 <p>@task.Title</p>
                 <p>@task.Description</p>
-                @* داخل الـ Loop في TaskContainer.razor *@
-                <div class="date-badge">
-                    <i class="fa-regular fa-clock"></i>
-                    @task.StartData.ToString("hh:mm tt")
-                </div>
-               <div class="footer">
-                    <p>@task.Pirority</p>
+                
+                <div class="footer">
+                    <div class="one">
+                        <i class="fa-regular fa-flag"></i>
+                        <p>@task.Pirority</p>
+                    </div>
                     <div class="icons">
-                        <i @onclick="()=>DeleteTask(task)" class="fa-solid fa-trash"></i>
+                        <i @onclick="() => OnDeleteRequested.InvokeAsync(task)" class="fa-solid fa-trash"></i>
                         <i class="fa-solid fa-pen"></i>
                     </div>
                 </div>
             </div>
         }
-    <div/>
-</div>
+        <div />
+    </div>
 </div>
 
 
@@ -49,8 +48,9 @@
     public int Count { get; set; }
     [Parameter]
     public EventCallback OnTaskMoved { get; set; }
-    // private Taskk? DraggedTask;
 
+    [Parameter]
+    public EventCallback<Taskk> OnDeleteRequested { get; set; }
 
     void HandleDragStart(Taskk draggedTask)
     {
@@ -66,10 +66,10 @@
         }
     }
 
-    async Task DeleteTask(Taskk task)
-    {
-        Context.Tasks.Remove(task);
-        await Context.SaveChangesAsync();
-        Tasks.Remove(task);
-    }
+    // async Task DeleteTask()
+    // {
+    //     Context.Tasks.Remove(deleted);
+    //     await Context.SaveChangesAsync();
+    //     Tasks.Remove(task);
+    // }
 }
