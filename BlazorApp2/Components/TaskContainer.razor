@@ -1,7 +1,9 @@
 ﻿@rendermode InteractiveServer
 @inject TasksContext Context
 @inject DragDropService DragDropService
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+    integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
 <div style="--color:@Color" class="tasks">
     <div class="card-headerr">
         <div class="logo">
@@ -10,16 +12,20 @@
         </div>
         <div class="count">@Count</div>
     </div>
-    <div ondragover="event.preventDefault();"
-         @ondrop="() => HandleDrop(Title)"
-         class="card-body">
+    <div ondragover="event.preventDefault();" @ondrop="() => HandleDrop(Title)" class="card-body">
 
         @foreach (var task in Tasks)
         {
-            <div draggable="true" class="task" @ondragstart="() => HandleDragStart(task)">
+            <div @key="task.Id" draggable="true" class="task @(task.Id == exitingTaskId ? "task-exit" : "")
+                                              @(task.Id == draggedOverTaskId ? "drag-over" : "")
+                                              @(DragDropService.DraggedTask?.Id == task.Id ? "is-dragging" : "")"
+                @ondragstart="() => HandleDragStart(task)"
+                @ondragenter="() => HandleDragEnter(task)"
+                @ondragend="HandleDragEnd">
+             
                 <p>@task.Title</p>
                 <p>@task.Description</p>
-                
+                `
                 <div class="footer">
                     <div class="one">
                         <i class="fa-regular fa-flag"></i>
@@ -27,7 +33,7 @@
                     </div>
                     <div class="icons">
                         <i @onclick="() => OnDeleteRequested.InvokeAsync(task)" class="fa-solid fa-trash"></i>
-                        <i class="fa-solid fa-pen"></i>
+                        <i @onclick="() => OnEditRequested.InvokeAsync(task.Id)" class="fa-solid fa-pen"></i>
                     </div>
                 </div>
             </div>
@@ -38,12 +44,19 @@
 
 
 @code {
+    public bool IsVisible { get; set; } = false;
+
+    [Parameter]
+    public int? exitingTaskId { get; set; }
+    [Parameter]
+    public int? editingTaskId { get; set; }
+
     [Parameter]
     public string Title { get; set; } = "";
     [Parameter]
     public string Color { get; set; } = "Red";
     [Parameter]
-    public List<Taskk> Tasks { get; set; } = new();
+    public List<Taskk> Tasks { get; set; } = new List<Taskk>();
     [Parameter]
     public int Count { get; set; }
     [Parameter]
@@ -51,25 +64,59 @@
 
     [Parameter]
     public EventCallback<Taskk> OnDeleteRequested { get; set; }
-
+    [Parameter]
+    public EventCallback<int> OnEditRequested { get; set; }
+    
+    int? draggedOverTaskId = null;
     void HandleDragStart(Taskk draggedTask)
     {
         DragDropService.DraggedTask = draggedTask;
     }
-    async Task HandleDrop(string title)
+
+    // الميثود دي دلوقتي وظيفتها بس "بصرية" (مش بتبدل أماكن)
+    void HandleDragEnter(Taskk targetTask)
     {
-        if (DragDropService.DraggedTask is not null && Title != DragDropService.DraggedTask.TaskType.ToString())
+        // ممكن تمسح اللي جواها لو مش عايز بوردر منقط على التاسكات التانية
+        // أو تسبها بس عشان تحدد الـ ID لو عايز شكل بَصري
+        draggedOverTaskId = targetTask.Id;
+    }
+
+    // الميثود دي هي "البطل" دلوقتي لأنها اللي بتنفذ النقل
+    async Task HandleDrop(string targetTitle)
+    {
+        var draggedTask = DragDropService.DraggedTask;
+
+        if (draggedTask != null)
         {
-            DragDropService.DraggedTask.TaskType = Enum.GetValues<TaskType>().FirstOrDefault(e => e.ToString() == Title);
+            // 1. تحويل الـ Title (العمود) لـ Enum النوع
+            var targetType = Enum.Parse<TaskType>(targetTitle);
+
+            // 2. تحديث النوع فقط (النقل للعمود الجديد)
+            draggedTask.TaskType = targetType;
+
+            // 3. (اختياري) لو عايزها تظهر في الآخر، ممكن تخلي الـ Position بتاعها كبير
+            draggedTask.Position = 999; 
+
+            // 4. حفظ وتبليغ الأب
             await Context.SaveChangesAsync();
             await OnTaskMoved.InvokeAsync();
         }
+        
+        draggedOverTaskId = null;
+        DragDropService.DraggedTask = null;
+    }
+
+    void HandleDragEnd()
+    {
+        draggedOverTaskId = null;
+        DragDropService.DraggedTask = null;
+        StateHasChanged();
     }
 
     // async Task DeleteTask()
     // {
-    //     Context.Tasks.Remove(deleted);
-    //     await Context.SaveChangesAsync();
-    //     Tasks.Remove(task);
+    // Context.Tasks.Remove(deleted);
+    // await Context.SaveChangesAsync();
+    // Tasks.Remove(task);
     // }
 }

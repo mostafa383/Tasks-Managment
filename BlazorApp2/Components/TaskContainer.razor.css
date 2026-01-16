@@ -6,7 +6,7 @@
 
 .tasks {
     margin: 10px 0;
-    /* اقل عرض للكارت قبل ما يقرر ينزل سطر جديد */
+    
     min-width: 350px;
 }
 
@@ -53,13 +53,16 @@
 @keyframes slideIn {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateX(-60px);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(0);
     }
+}
+.task * {
+    pointer-events: none; /* ده أهم سطر عشان البوردر ميعلقش */
 }
 
 .task {
@@ -69,18 +72,51 @@
     width: 320px;
     margin-top: 10px;
     margin-bottom: 10px;
-    transition: .3s;
+   transition: transform 0.25s ease-out, opacity 0.25s ease-out, box-shadow 0.3s;
     cursor: move;
-    animation: slideIn 0.3s linear;
+    /* pointer-events: none; */
+    /* animation: slideIn 0.3s linear; */
+}
+.task-exit {
+    animation: slideOut 0.4s ease-in forwards;
+}
+
+/* كلاس الأنيميشن للتاسك اللي الماوس فوقها */
+/* التاسك اللي الماوس فوقها (الهدف) */
+.task.drag-over {
+    opacity: 0.6 !important; /* خليها شفافة أكتر عشان تبرز اللي في إيدك */
+    border: 3px dashed var(--color) !important; /* بوردر بنفس لون العمود ومنقط */
+    background-color: #e8f4f8 !important;
+    transform: scale(0.98); /* تصغير بسيط بيدي إحساس إنها بتفسح مكان */
+}
+
+/* التاسك اللي إنت شاددها (الأصل) */
+.task.is-dragging {
+    opacity: 1 !important; /* واضحة تماماً */
+    border: 2px solid var(--color);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.25);
+    transform: scale(1.04) rotate(2deg); /* تكبير وميلان بسيط بيدي إحساس إنها ممسوكة */
+    z-index: 1000;
+}
+/* حركة انزلاق بسيطة لباقي التاسكات عشان تحس إن فيه حاجة بتتحرك */
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(100px);
+    }
 }
 
     .task:hover {
         box-shadow: 0 4px 10px;
     }
 
-    .task p {
-        /*margin-bottom: 10px;*/
-    }
+  
 
     .task .footer {
         display: flex;

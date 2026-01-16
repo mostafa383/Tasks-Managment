@@ -1,15 +1,29 @@
 ﻿@page "/"
-@using Blazorise
+@using BlazorApp2.Migrations
 @rendermode InteractiveServer
 @inject TasksContext Context
+@inject IJSRuntime JS
 <PageTitle>Home</PageTitle>
-
-<div style="position: relative; max-width: 300px; margin-bottom: 20px;">
-    <DatePicker TValue="DateTime"
-                Date="@SelectedDate"
-                DateChanged="@FilterTasksByDate"
-                class="form-control" />
+<button @onclick=()=> {
+JS.InvokeVoidAsync("playCelebrationSound");
+} style="color: White;">fdfgfgf</button>
+<div class="progress-section" style="margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 15px;">
+    <div class="progress-info" style="display: flex; justify-content: space-between; color: white; margin-bottom: 10px;">
+        <span>Daily Progress</span>
+        <span>@ProgressPercentage%</span>
+    </div>
+    
+    <div class="progress-container" style="height: 16px; background: #333; border-radius: 10px; overflow: hidden; border: 1px solid #444;">
+        <div class="progress-fill" 
+             style="width: @(ProgressPercentage)%; height: 100%; transition: width 0.8s ease-in-out; @ProgressBarStyle">
+        </div>
+    </div>
+    
+    <p style="color: #ccc; font-size: 12px; margin-top: 8px; text-align: center;">
+        @Completed.Count of @Tasks.Count tasks completed
+    </p>
 </div>
+
 <div class="container-card">
     <MinCard Color="orange" Text="AllTasks" Value="@(Tasks.Count)" />
     <MinCard Color="#5d2ab2" Text="ToDo" Value="@(ToDo.Count)" />
@@ -18,14 +32,22 @@
 </div>
 <button class="AddTask fa-solid fa-plus" @onclick="() => showModal = true"></button>
 
-
-@code {
-    DateTime? value;
-}
+<div style="margin-top:10px; position: relative; max-width: 300px;">
+    <input type="date" 
+           value="@SelectedDate.ToString("yyyy-MM-dd")"
+           @onchange="OnDateChanged"
+           class="form-control" />
+</div>
+<input  type="text"
+         @onkeyup="SearchOnTaks"
+         @bind:event="oninput"
+         @bind="Search"
+         placeholder="Serch on tasks"
+         style="margin: 10px 0;outline:none;border-radius: 15px;width: 300px;padding: 5px"/>
 <div class="tasks-container">
-    <TaskContainer OnDeleteRequested="DeleteRequest" OnTaskMoved="RefreshData" Title="ToDo" Tasks="ToDo" Count="ToDo.Count" Color="#2563eb"></TaskContainer>
-    <TaskContainer OnDeleteRequested="DeleteRequest" OnTaskMoved="RefreshData" Title="Processing" Tasks="Processing" Count="Processing.Count" Color="#f59e0b"></TaskContainer>
-    <TaskContainer OnDeleteRequested="DeleteRequest" OnTaskMoved="RefreshData" Title="Completed" Tasks="Completed" Count="Completed.Count" Color="#16a34a"></TaskContainer>
+    <TaskContainer  OnEditRequested="OnEdit" EditingTaskId="editingTaskId" OnDeleteRequested="DeleteRequest" OnTaskMoved="RefreshData" Title="ToDo" Tasks="ToDo" Count="ToDo.Count" Color="#2563eb"></TaskContainer>
+    <TaskContainer  OnEditRequested="OnEdit" EditingTaskId="editingTaskId" OnDeleteRequested="DeleteRequest" OnTaskMoved="RefreshData" Title="Processing" Tasks="Processing" Count="Processing.Count" Color="#f59e0b"></TaskContainer>
+    <TaskContainer  OnEditRequested="OnEdit" EditingTaskId="editingTaskId" OnDeleteRequested="DeleteRequest" OnTaskMoved="RefreshData" Title="Completed" Tasks="Completed" Count="Completed.Count" Color="#16a34a"></TaskContainer>
 
 </div>
 @* ... كود الكروت والـ Tasks ... *@
@@ -63,9 +85,55 @@
     </div>
 </div>
 
+<BlazorApp2.Components.Modal IsVisible="IsEditVisible" OnClose="() => IsEditVisible = false">
+    <h2 style="color:black">Edit Task</h2>
+    @if (editedTask is not null)
+    {
+        <input placeholder="Enter title" type="text" @bind="editedTask.Title" class="form-control" />
+        <input placeholder="Enter description" type="text" @bind="editedTask.Description" class="form-control" />
+        <select @bind="editedTask.Pirority">
+            @foreach (var pir in Enum.GetValues<Pirority>())
+            {
+                <option value="@pir">@pir</option>
+            }
+        </select>
+        <select @bind="editedTask.TaskType">
+            @foreach (var type in Enum.GetValues<TaskType>())
+            {
+                <option value="@type">@type</option>
+            }
+        </select>
+        <button class="btn btn-success" @onclick="async () =>
+        {
+            await Context.SaveChangesAsync();
+            await RefreshData();
+            IsEditVisible = false;
+        }">Save</button>
+        <button class="btn btn-danger" @onclick="() => IsEditVisible = false">ِClose</button>
+    }
+
+</BlazorApp2.Components.Modal>
 @code {
+    public int ProgressPercentage => (Tasks != null && Tasks.Any()) 
+        ? (Completed.Count * 100 / Tasks.Count) 
+        : 0;
+
+    // خاصية لتحديد الـ Style بناءً على النسبة
+    public string ProgressBarStyle => ProgressPercentage switch
+    {
+        100 => "background: linear-gradient(90deg, #ffd700, #ffae00) !important; box-shadow: 0 0 15px #ffd700;",
+        < 35 => "background-color: #ef4444 !important;",
+        < 70 => "background-color: #f59e0b !important;",
+        _ => "background-color: #16a34a !important;" // اللون الأخضر
+    };
+
+    public string Search=string.Empty;
+    public Taskk? editedTask;
+    private int? exitingTaskId;
+    private int? editingTaskId;
     public DateTime SelectedDate { get; set; } = DateTime.Now;
     public bool IsVisible { get; set; }
+    public bool IsEditVisible { get; set; }
     // تعريف القائمة كمتغير عادي
     public List<Taskk> Tasks { get; set; } = new();
     public TaskDto TaskDto { get; set; } = new();
@@ -78,7 +146,9 @@
     protected override async Task OnInitializedAsync()
     {
         Tasks = await Context.Tasks.
-            Where(e => e.StartData.Date == DateTime.Today.Date).ToListAsync();
+            Where(e => e.StartData.Date == DateTime.Today.Date).
+            OrderBy(e=>e.Position). 
+            ToListAsync();
         ToDo = Tasks.Where(e => e.TaskType == TaskType.ToDo).ToList();
         Processing = Tasks.Where(e => e.TaskType == TaskType.Processing).ToList();
         Completed = Tasks.Where(e => e.TaskType == TaskType.Completed).ToList();
@@ -94,14 +164,15 @@
                 Pirority = TaskDto.Pirority,
                 TaskType = TaskDto.TaskType,
                 Title = TaskDto.Title,
-                StartData = TaskDto.StartDate
+                StartData = TaskDto.StartDate,
+                Position=Tasks.Count+1
             };
             Context.Add(task);
             await Context.SaveChangesAsync();
             await RefreshData();
         }
         catch (Exception ex)
-        {
+        {   
             Console.WriteLine(ex.Message);
         }
     }
@@ -109,32 +180,88 @@
     {
         Tasks = await Context.Tasks.
         Where(e => e.StartData.Date == SelectedDate.Date).
+        OrderBy(e => e.Position).   
         ToListAsync();
 
         ToDo = Tasks.Where(e => e.TaskType == TaskType.ToDo).ToList();
         Processing = Tasks.Where(e => e.TaskType == TaskType.Processing).ToList();
         Completed = Tasks.Where(e => e.TaskType == TaskType.Completed).ToList();
-
+await CheckForCelebration();
         StateHasChanged(); // تأكيد تحديث الواجهة
     }
     async Task DeleteRequest(Taskk task)
     {
         IsVisible = true;
+        // تأخير بسيط لضمان تحديث الواجهة
         deletedTask = task;
+    }
+
+    async Task OnEdit(int id)
+    {
+        IsEditVisible = true;
+        editingTaskId = id;
+        GetTask();
     }
     async Task DeleteTask()
     {
         if (deletedTask is not null)
         {
+            exitingTaskId = deletedTask.Id;
+            await Task.Delay(400); 
             Context.Tasks.Remove(deletedTask);
             await Context.SaveChangesAsync();
             await RefreshData();
             IsVisible = false;
         }
     }
-    async Task FilterTasksByDate(DateTime newDate)
+    async Task OnDateChanged(ChangeEventArgs e)
     {
-        SelectedDate = newDate; // تحديث القيمة المختارة باللي المستخدم داس عليه
-        await RefreshData();    // جلب البيانات بناءً على التاريخ الجديد
+        if (DateTime.TryParse(e.Value?.ToString(), out var newDate))
+        {
+            SelectedDate = newDate;
+            await RefreshData();
+        }
     }
+
+    void GetTask()
+    {
+        editedTask = Context.Tasks.FirstOrDefault(e => e.Id == editingTaskId);
+    }
+    void SearchOnTaks() {
+        @* Tasks=Tasks.Where(e=>e.Title.Contains(Search)).ToList(); *@
+        // نقوم بالفلترة من قائمة Tasks (المصدر الأصلي لليوم المختار)
+    ToDo = Tasks.Where(e => e.TaskType == TaskType.ToDo && 
+                           (string.IsNullOrEmpty(Search) || e.Title.Contains(Search, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+    Processing = Tasks.Where(e => e.TaskType == TaskType.Processing && 
+                                (string.IsNullOrEmpty(Search) || e.Title.Contains(Search, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+
+    Completed = Tasks.Where(e => e.TaskType == TaskType.Completed && 
+                               (string.IsNullOrEmpty(Search) || e.Title.Contains(Search, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+    }
+
+    private bool _confettiLaunched = false; // عشان ميتكررش كذا مرة ورا بعض
+
+async Task CheckForCelebration()
+{
+    var progress = Tasks.Count > 0 ? (Completed.Count * 100 / Tasks.Count) : 0;
+
+    if (progress == 100 && Tasks.Count > 0)
+    {
+        if (!_confettiLaunched)
+        {
+            await JS.InvokeVoidAsync("launchConfetti");
+            await JS.InvokeVoidAsync("playCelebrationSound");
+            _confettiLaunched = true;
+        }
+    }
+    else
+    {
+        _confettiLaunched = false; // صفر الحالة لو نقصت التاسكات عن 100%
+    }
+}
+
 }
